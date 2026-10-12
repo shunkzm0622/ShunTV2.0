@@ -1,0 +1,45 @@
+
+name: Build ShunTV IPTV IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install insert_dylib
+        shell: bash
+        run: |
+          git clone https://github.com/Tyilo/insert_dylib.git
+          cd insert_dylib
+          xcodebuild -project insert_dylib.xcodeproj \
+            -scheme insert_dylib \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+          cp build/Build/Products/Release/insert_dylib ../insert_dylib_bin
+          chmod +x ../insert_dylib_bin
+          cd ..
+          mv insert_dylib insert_dylib_source
+          mv insert_dylib_bin insert_dylib
+
+      - name: Build ShunTV
+        shell: bash
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          chmod +x build_macos.sh
+          bash -x build_macos.sh
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShunTV-1.0-IPTV-unsigned
+          path: "*.ipa"
+          if-no-files-found: error
